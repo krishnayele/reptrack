@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Camera-powered rep counter for push-ups, sit-ups, and squats. Runs 100% in your browser — no account, no data upload.">
+  <meta name="theme-color" content="#0D1117">
+
+  <title>RepTrack</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json">
+
+  <!-- Favicon (SVG — works in all modern browsers with no .ico needed) -->
+  <link rel="icon" type="image/svg+xml" href="/assets/icons/icon-192.svg">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap">
+
+  <!-- App styles -->
+  <link rel="stylesheet" href="/assets/css/style.css">
+</head>
+
+<body>
+
+  <!-- ── Header ── -->
+  <header>
+    <div class="logo">Rep<span>Track</span></div>
+    <div class="header-right">
+      <button class="theme-btn" id="themeToggle" aria-label="Toggle light/dark theme">☀ / ☾ Theme</button>
+    </div>
+  </header>
+
+  <!-- ── Main app grid ── -->
+  <div class="app">
+
+    <!-- Camera column -->
+    <div>
+      <div class="camera-panel" id="cameraPanel">
+
+        <!-- Before camera starts -->
+        <div class="camera-placeholder" id="placeholder">
+          <svg width="56" height="56" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <path d="M23 7l-7 5 7 5V7z"/>
+            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+          </svg>
+          <div>
+            <strong style="font-family:'Rajdhani',sans-serif;font-size:1.1rem;letter-spacing:.04em;">
+              Camera Required
+            </strong><br>
+            Point your camera so your full body is visible.<br>
+            Stand 2–3 metres from the camera for best results.
+          </div>
+          <button class="start-btn" id="startBtn">▶ Start Camera</button>
+        </div>
+
+        <!-- Live feed + skeleton overlay -->
+        <video id="videoEl" autoplay playsinline muted style="display:none"
+               aria-label="Live camera feed"></video>
+        <canvas id="canvasEl" style="display:none"
+                aria-hidden="true"></canvas>
+
+        <!-- Status badge (top-left of camera) -->
+        <div class="status-badge" id="statusBadge" aria-live="polite">Live</div>
+
+        <!-- Exercise + phase badge (bottom of camera) -->
+        <div class="exercise-overlay" id="exerciseOverlay" aria-live="polite">
+          <div>
+            <div class="ov-label">Tracking</div>
+            <div class="ov-exercise" id="ovExercise">—</div>
+          </div>
+          <div class="ov-phase" id="ovPhase">Ready</div>
+        </div>
+
+      </div><!-- /.camera-panel -->
+
+      <!-- Model loading notice -->
+      <div id="loadingNotice" class="loading-notice" style="display:none" aria-live="polite">
+        ⏳ Loading AI pose model… (first time only — about 10 MB download)
+      </div>
+    </div><!-- /camera column -->
+
+    <!-- ── Sidebar ── -->
+    <div class="sidebar">
+
+      <!-- Exercise selector -->
+      <div class="panel">
+        <div class="panel-header">Choose Exercise</div>
+        <div class="exercise-list" id="exerciseList">
+          <!-- built dynamically by ui.js -->
+        </div>
+      </div>
+
+      <!-- Session stats + feedback -->
+      <div class="panel">
+        <div class="panel-header">Session</div>
+        <div class="stats-grid">
+          <div class="stat-cell">
+            <div class="stat-label">Total Reps</div>
+            <div class="stat-value" id="statTotal">0</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-label">Active</div>
+            <div class="stat-value" id="statExercise">—</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-label">Elapsed</div>
+            <div class="stat-value" id="statTime">0:00</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-label">Confidence</div>
+            <div class="stat-value" id="statConf">—</div>
+          </div>
+        </div>
+        <div class="feedback" id="feedbackMsg" aria-live="polite">
+          Select an exercise and start your camera to begin tracking.
+        </div>
+        <div class="controls">
+          <button class="ctrl-btn"        id="resetCurrentBtn">Reset Current</button>
+          <button class="ctrl-btn danger" id="resetAllBtn">Reset All</button>
+        </div>
+      </div>
+
+      <!-- Form tips -->
+      <div class="panel">
+        <div class="tip-section">
+          <div class="tip-heading" id="tipToggle" role="button"
+               tabindex="0" aria-expanded="false">
+            Form Tips <span id="tipArrow" aria-hidden="true">▸</span>
+          </div>
+          <div class="tip-body" id="tipBody">
+            <!-- filled by ui.js per exercise -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Session history -->
+      <div class="panel">
+        <div class="panel-header">Session History</div>
+        <div id="historyList" class="history-list" aria-live="polite">
+          <div class="history-empty">Completed sets will appear here.</div>
+        </div>
+      </div>
+
+      <!-- Progress chart (persists across sessions) -->
+      <div class="panel">
+        <div class="tip-section">
+          <div class="tip-heading" id="progressToggle" role="button"
+               tabindex="0" aria-expanded="false">
+            Progress <span id="progressArrow" aria-hidden="true">▸</span>
+          </div>
+          <div class="tip-body" id="progressContent">
+            <!-- filled by ui.js -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Export panel -->
+      <div class="panel">
+        <div class="panel-header">Export &amp; Share</div>
+        <div class="export-section">
+          <p class="export-desc">
+            Save your full workout history to a file or send it to yourself by email.
+            All data stays on your device — nothing is uploaded.
+          </p>
+          <div class="export-btns">
+            <button class="export-btn" id="exportCSVBtn">
+              <span class="export-icon">⬇</span> Download CSV
+            </button>
+            <button class="export-btn" id="exportEmailBtn">
+              <span class="export-icon">✉</span> Email Report
+            </button>
+          </div>
+          <button class="ctrl-btn danger" id="clearHistoryBtn"
+                  style="width:100%;margin-top:8px;">
+            🗑 Clear All History
+          </button>
+        </div>
+      </div>
+
+    </div><!-- /.sidebar -->
+  </div><!-- /.app -->
+
+  <!-- ── Scripts (order is critical — each file depends on globals from prior files) ── -->
+
+  <!-- 1. MediaPipe: must load before pose.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"
+          crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"
+          crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"
+          crossorigin="anonymous"></script>
+
+  <!-- 2. Exercise definitions (EXERCISES global used by ui.js and pose.js) -->
+  <script src="/assets/js/exercises.js"></script>
+
+  <!-- 3. Pose + skeleton (uses EXERCISES, reads DOM via ui.js globals) -->
+  <script src="/assets/js/pose.js"></script>
+
+  <!-- 4. UI wiring — builds exercise buttons, wires all controls, defines setFeedback etc. -->
+  <script src="/assets/js/ui.js"></script>
+
+  <!-- 5. Service Worker registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .catch(err => console.warn('SW registration failed:', err));
+      });
+    }
+  </script>
+
+</body>
+</html>

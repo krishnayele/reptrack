@@ -1,0 +1,27 @@
+{
+  "name": "RepTrack — AI Exercise Counter",
+  "short_name": "RepTrack",
+  "description": "Camera-powered rep counter for push-ups, sit-ups, and squats using AI pose detection.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0D1117",
+  "theme_color": "#00E5FF",
+  "orientation": "landscape-primary",
+  "icons": [
+    {
+      "src": "/assets/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["health", "fitness", "sports"],
+  "screenshots": [],
+  "related_applications": []
+}
